@@ -1,0 +1,129 @@
+## Predicciones
+head(data)
+install.packages("nnet")
+library(dplyr)
+library(nnet)
+set.seed(123)  # Para reproducibilidad
+indices <- sample(1:nrow(data), 0.8 * nrow(data))
+datos_entrenamiento <- data[indices, ]
+datos_prueba <- data[-indices, ]
+
+# Entrenar el modelo de regresión logística multinomial
+modelo_plataforma <- multinom(platform ~ ., data = datos_entrenamiento)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones_plataforma <- predict(modelo_plataforma, newdata = datos_prueba, type = "class")
+
+# Evaluar la precisión del modelo
+precision_plataforma <- mean(predicciones_plataforma == datos_prueba$platform)
+cat("Precisión del modelo de plataforma:", precision_plataforma, "\n")
+# Imprimir las primeras 10 predicciones
+head(predicciones_plataforma, 10)
+
+
+# Gráfico de barras para las predicciones
+predicciones_df <- data.frame(Plataforma_Predicha = predicciones_plataforma, Count = 1)
+ggplot(predicciones_df, aes(x = Plataforma_Predicha, fill = Plataforma_Predicha)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Instagram" = "#8a3ab9", "Facebook" = "#3b5998", "YouTube" = "#ff0000")) +  # Especificar colores
+  labs(title = "Predicción de Plataforma",
+       x = "Plataforma",
+       y = "Número de Usuarios")
+
+# Gráfico de barras para los datos originales
+datos_prueba_df <- data.frame(Plataforma_Real = datos_prueba$platform, Count = 1)
+ggplot(datos_prueba_df, aes(x = Plataforma_Real, fill = Plataforma_Real)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Instagram" = "#8a3ab9", "Facebook" = "#3b5998", "YouTube" = "#ff0000")) +  # Especificar colores
+  labs(title = "Datos Originales de Plataforma",
+       x = "Plataforma",
+       y = "Número de Usuarios")
+### Predicciones por sexo
+# Dividir los datos por sexo
+datos_hombres <- subset(data, gender == "male")
+datos_mujeres <- subset(data, gender == "female")
+datos_no_binario <- subset(data, gender == "non-binary")
+
+# Función para determinar la plataforma más utilizada en un grupo
+plataforma_mas_usada <- function(datos) {
+  tabla_frecuencia <- table(datos$platform)
+  plataforma_mas_usada <- names(tabla_frecuencia)[which.max(tabla_frecuencia)]
+  return(plataforma_mas_usada)
+}
+
+# Determinar la plataforma más utilizada para cada grupo de sexo
+plataforma_mas_usada_hombres <- plataforma_mas_usada(datos_hombres)
+plataforma_mas_usada_mujeres <- plataforma_mas_usada(datos_mujeres)
+plataforma_mas_usada_no_binario <- plataforma_mas_usada(datos_no_binario)
+
+# Predicción de la plataforma más utilizada para cada grupo de sexo
+prediccion_hombres <- plataforma_mas_usada_hombres
+prediccion_mujeres <- plataforma_mas_usada_mujeres
+prediccion_no_binario <- plataforma_mas_usada_no_binario
+
+# Mostrar los resultados
+cat("Predicción de plataforma más utilizada para hombres:", prediccion_hombres, "\n")
+cat("Predicción de plataforma más utilizada para mujeres:", prediccion_mujeres, "\n")
+cat("Predicción de plataforma más utilizada para personas no binarias:", prediccion_no_binario, "\n")
+### Graficos
+library(ggplot2)
+
+# Función para crear un gráfico de barras de la distribución de plataformas
+crear_grafico_barras <- function(datos, titulo) {
+  ggplot(datos, aes(x = platform, fill = platform)) +
+    geom_bar() +
+    scale_fill_manual(values = c("Instagram" = "#8a3ab9", "Facebook" = "#3b5998", "YouTube" = "#ff0000")) +  # Especificar colores
+    labs(title = titulo,
+         x = "Plataforma",
+         y = "Número de Usuarios")
+}
+
+# Gráfico de barras para hombres
+grafico_hombres <- crear_grafico_barras(datos_hombres, "Distribución de Plataformas para Hombres")
+
+# Gráfico de barras para mujeres
+grafico_mujeres <- crear_grafico_barras(datos_mujeres, "Distribución de Plataformas para Mujeres")
+
+# Gráfico de barras para personas no binarias
+grafico_no_binario <- crear_grafico_barras(datos_no_binario, "Distribución de Plataformas para Personas no Binarias")
+
+# Mostrar los gráficos
+print(grafico_hombres)
+print(grafico_mujeres)
+print(grafico_no_binario)
+
+
+## Por edad
+# Calcular la plataforma más utilizada por grupo de edad en los datos de entrenamiento
+plataforma_mas_usada_por_edad <- aggregate(platform ~ age_group, data = datos_entrenamiento, FUN = function(x) names(sort(table(x), decreasing = TRUE)[1]))
+
+# Realizar predicciones en los datos de prueba utilizando la plataforma más utilizada por grupo de edad en los datos de entrenamiento
+predicciones_plataforma_por_edad <- merge(datos_prueba, plataforma_mas_usada_por_edad, by = "age_group", sort = FALSE)$x
+
+# Crear un gráfico de barras para visualizar las predicciones
+ggplot(data = plataforma_mas_usada_por_edad, aes(x = age_group, fill = platform)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Instagram" = "#8a3ab9", "Facebook" = "#3b5998", "YouTube" = "#ff0000")) +  # Especificar colores
+  labs(title = "Plataforma Más Utilizada por Rango de Edad",
+       x = "Rango de Edad",
+       y = "")
+
+#### Unimos predicciones y lo metemos en un mismo grafico
+# Calcular la plataforma más utilizada por grupo de edad y sexo en los datos de entrenamiento
+plataforma_mas_usada_por_edad_y_sexo <- aggregate(platform ~ age_group + gender, data = datos_entrenamiento, FUN = function(x) names(sort(table(x), decreasing = TRUE)[1]))
+
+# Realizar predicciones en los datos de prueba utilizando la plataforma más utilizada por grupo de edad y sexo en los datos de entrenamiento
+predicciones_plataforma_por_edad_y_sexo <- merge(datos_prueba, plataforma_mas_usada_por_edad_y_sexo, by = c("age_group", "gender"), sort = FALSE)$x
+
+
+# Crear un gráfico de barras para visualizar las predicciones
+ggplot(data = plataforma_mas_usada_por_edad_y_sexo, aes(x = age_group, fill = platform)) +
+  geom_bar(position = "dodge", stat = "count") +
+  facet_grid(. ~ gender) +
+  scale_fill_manual(values = c("Instagram" = "#8a3ab9", "Facebook" = "#3b5998", "YouTube" = "#ff0000")) +  # Especificar colores
+  labs(title = "Plataforma Más Utilizada por Rango de Edad y Sexo",
+       x = "Rango de Edad",
+       y = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+

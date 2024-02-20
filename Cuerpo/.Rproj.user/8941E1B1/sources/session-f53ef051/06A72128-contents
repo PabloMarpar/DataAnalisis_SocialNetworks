@@ -1,0 +1,97 @@
+## Predicciones
+head(data)
+library(nnet)
+
+# Dividir los datos en conjunto de entrenamiento y conjunto de prueba
+set.seed(123)  # Para reproducibilidad
+indices <- sample(1:nrow(data), 0.8 * nrow(data))
+datos_entrenamiento <- data[indices, ]
+datos_prueba <- data[-indices, ]
+
+# Entrenar el modelo de regresión logística multinomial para intereses
+library(nnet)
+modelo_intereses <- multinom(interests ~ ., data = datos_entrenamiento)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones_intereses <- predict(modelo_intereses, newdata = datos_prueba, type = "class")
+
+# Evaluar la precisión del modelo
+precision_intereses <- mean(predicciones_intereses == datos_prueba$interests)
+cat("Precisión del modelo de intereses:", precision_intereses, "\n")
+
+# Imprimir las primeras 10 predicciones
+head(predicciones_intereses, 10)
+
+
+# Graficos
+# Gráfico de barras para las predicciones de intereses
+predicciones_df <- data.frame(Intereses_Predichos = predicciones_intereses, Count = 1)
+ggplot(predicciones_df, aes(x = Intereses_Predichos, fill = Intereses_Predichos)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Sports" = "green", "Travel" = "#3b5998", "Lifestlye" = "yellow")) +  # Especificar colores
+  labs(title = "Predicción de Intereses",
+       x = "Intereses",
+       y = "Número de Usuarios")
+
+# Gráfico de barras para los datos originales de intereses
+datos_prueba_df <- data.frame(Intereses_Reales = datos_prueba$interests, Count = 1)
+ggplot(datos_prueba_df, aes(x = Intereses_Reales, fill = Intereses_Reales)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Sports" = "green", "Travel" = "#3b5998", "Lifestlye" = "yellow")) +  # Especificar colores
+  labs(title = "Datos Originales de Intereses",
+       x = "Intereses",
+       y = "Número de Usuarios")
+
+## Predicciones individualizadas
+# Dividir los datos por sexo
+datos_hombres <- subset(data, gender == "male")
+datos_mujeres <- subset(data, gender == "female")
+datos_no_binario <- subset(data, gender == "non-binary")
+
+# Función para determinar el interés más común en un grupo
+interes_mas_comun <- function(datos) {
+  tabla_frecuencia <- table(datos$interests)
+  interes_mas_comun <- names(tabla_frecuencia)[which.max(tabla_frecuencia)]
+  return(interes_mas_comun)
+}
+
+# Determinar el interés más común para cada grupo de sexo
+interes_mas_comun_hombres <- interes_mas_comun(datos_hombres)
+interes_mas_comun_mujeres <- interes_mas_comun(datos_mujeres)
+interes_mas_comun_no_binario <- interes_mas_comun(datos_no_binario)
+
+# Predicción del interés más común para cada grupo de sexo
+prediccion_hombres <- interes_mas_comun_hombres
+prediccion_mujeres <- interes_mas_comun_mujeres
+prediccion_no_binario <- interes_mas_comun_no_binario
+
+# Mostrar los resultados
+cat("Predicción de interés más común para hombres:", prediccion_hombres, "\n")
+cat("Predicción de interés más común para mujeres:", prediccion_mujeres, "\n")
+cat("Predicción de interés más común para personas no binarias:", prediccion_no_binario, "\n")
+
+
+#### Graficos
+# Función para crear un gráfico de barras de la distribución de intereses
+crear_grafico_barras_intereses <- function(data, titulo) {
+  ggplot(data, aes(x = interests, fill = interests)) +
+    geom_bar() +
+    scale_fill_manual(values = c("Sports" = "green", "Travel" = "#3b5998", "Lifestlye" = "#ffcc00")) +  # Especificar colores
+    labs(title = titulo,
+         x = "Intereses",
+         y = "Número de Usuarios")
+}
+
+# Gráfico de barras para hombres
+grafico_hombres_intereses <- crear_grafico_barras_intereses(datos_hombres, "Distribución de Intereses para Hombres")
+
+# Gráfico de barras para mujeres
+grafico_mujeres_intereses <- crear_grafico_barras_intereses(datos_mujeres, "Distribución de Intereses para Mujeres")
+
+# Gráfico de barras para personas no binarias
+grafico_no_binario_intereses <- crear_grafico_barras_intereses(datos_no_binario, "Distribución de Intereses para Personas no Binarias")
+
+# Mostrar los gráficos
+print(grafico_hombres_intereses)
+print(grafico_mujeres_intereses)
+print(grafico_no_binario_intereses)
